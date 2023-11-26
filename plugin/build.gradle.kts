@@ -4,8 +4,8 @@ plugins {
     `java-gradle-plugin`
     `kotlin-dsl`
     `maven-publish`
-    id("com.gradle.plugin-publish") version "1.2.1"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    alias(libs.plugins.plugin.publish)
+    alias(libs.plugins.shadow)
 }
 
 repositories {

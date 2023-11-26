@@ -3,3 +3,7 @@ configurate-bom = "org.spongepowered:configurate-bom:4.1.2"
 configurate-core = { module = "org.spongepowered:configurate-core" }
 configurate-toml = "me.lucko.configurate:configurate-toml:4.1"
 gson = "com.google.code.gson:gson:2.10.1"
+
+[plugins]
+plugin-publish = "com.gradle.plugin-publish:1.2.1"
+shadow = "com.github.johnrengelman.shadow:8.1.1"
