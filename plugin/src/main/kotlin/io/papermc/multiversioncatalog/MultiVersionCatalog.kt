@@ -74,9 +74,6 @@ abstract class MultiVersionCatalog @Inject constructor(
 
             // val catalogText = printVersionCatalogToml(node)
             val catalogText = TOMLConfigurationLoader.builder()
-                .apply {
-                    keyIndent = 2
-                }
                 .buildAndSaveString(node)
                 .replace(VERSION_REF_HACK, VERSION_REF)
 

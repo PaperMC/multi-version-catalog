@@ -1,0 +1,2 @@
+[libraries]
+adventure-text-serializer-ansi = { module = "net.kyori:adventure-text-serializer-ansi", version.ref = "adventure" }

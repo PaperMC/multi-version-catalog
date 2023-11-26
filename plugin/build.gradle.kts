@@ -23,38 +23,38 @@ dependencies {
     implementation(libs.gson)
 }
 
-tasks.shadowJar {
-    archiveClassifier = ""
-    fun reloc(pkg: String) = relocate(pkg, "paper.multiversioncatalog.libs.$pkg")
-    reloc("io.leangen")
-    reloc("me.lucko")
-    reloc("org.spongepowered")
-    reloc("com.google.gson")
-    reloc("com.moandjiezana.toml")
-}
-tasks.assemble {
-    dependsOn(tasks.shadowJar)
+tasks {
+    shadowJar {
+        archiveClassifier = ""
+        configurations = listOf(shade)
+        fun reloc(pkg: String) = relocate(pkg, "paper.multiversioncatalog.libs.$pkg")
+        reloc("io.leangen")
+        reloc("me.lucko")
+        reloc("org.spongepowered")
+        reloc("com.google.gson")
+        reloc("com.moandjiezana.toml")
+        manifest.attributes("Multi-Release" to true)
+    }
+    assemble {
+        dependsOn(shadowJar)
+    }
+    withType(KotlinCompile::class).configureEach {
+        kotlinOptions.jvmTarget = "1.8"
+        // kotlinOptions.freeCompilerArgs += "-Xjdk-release=1.8"
+    }
+    withType(Jar::class).configureEach {
+        from(rootProject.file("LICENSE")) {
+            rename("LICENSE", "META-INF/LICENSE_multi-version-catalog")
+        }
+    }
 }
 
 testing {
-    suites {
-        val test by getting(JvmTestSuite::class) {
-            useKotlinTest(embeddedKotlinVersion)
-        }
-
-        val functionalTest by registering(JvmTestSuite::class) {
-            useKotlinTest(embeddedKotlinVersion)
-
-            dependencies {
-                implementation(project())
-            }
-
-            targets {
-                all {
-                    // This test suite should run after the built-in test suite has run its tests
-                    testTask.configure { shouldRunAfter(test) } 
-                }
-            }
+    suites.named("test", JvmTestSuite::class) {
+        useKotlinTest(embeddedKotlinVersion)
+        dependencies {
+            implementation(libs.junit.api)
+            runtimeOnly(libs.junit.engine)
         }
     }
 }
@@ -68,7 +68,7 @@ publishing.repositories.maven("https://repo.papermc.io/repository/maven-snapshot
 gradlePlugin {
     website.set("https://github.com/PaperMC/multi-version-catalog")
     vcsUrl.set("https://github.com/PaperMC/multi-version-catalog")
-    val greeting by plugins.creating {
+    plugins.create("plugin") {
         id = "io.papermc.multi-version-catalog"
         displayName = "multi-version-catalog"
         description = "Combines multiple toml files into a single version catalog"
@@ -77,19 +77,8 @@ gradlePlugin {
     }
 }
 
-gradlePlugin.testSourceSets.add(sourceSets["functionalTest"])
-
-tasks.check {
-    dependsOn(testing.suites.named("functionalTest"))
-}
-
 kotlin {
     jvmToolchain {
         languageVersion.set(JavaLanguageVersion.of(8))
     }
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
-    // kotlinOptions.freeCompilerArgs += "-Xjdk-release=1.8"
 }

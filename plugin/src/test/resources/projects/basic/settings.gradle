@@ -1,0 +1,6 @@
+plugins {
+    id("io.papermc.multi-version-catalog")
+}
+
+def mvc = extensions.getByType(io.papermc.multiversioncatalog.MultiVersionCatalog)
+mvc.fromFiles("libs", "server.versions.toml", "api.versions.toml")

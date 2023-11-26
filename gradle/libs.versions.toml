@@ -3,6 +3,11 @@ configurate-bom = "org.spongepowered:configurate-bom:4.1.2"
 configurate-core = { module = "org.spongepowered:configurate-core" }
 configurate-toml = "me.lucko.configurate:configurate-toml:4.1"
 gson = "com.google.code.gson:gson:2.10.1"
+junit-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+
+[versions]
+junit = "5.10.1"
 
 [plugins]
 plugin-publish = "com.gradle.plugin-publish:1.2.1"
