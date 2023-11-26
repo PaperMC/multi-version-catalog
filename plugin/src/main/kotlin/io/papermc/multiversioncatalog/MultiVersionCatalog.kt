@@ -11,6 +11,7 @@ import java.nio.file.Path
 import java.util.function.Function
 import javax.inject.Inject
 import kotlin.io.path.exists
+import kotlin.io.path.readText
 
 abstract class MultiVersionCatalog @Inject constructor(
     private val settings: Settings,
@@ -28,10 +29,10 @@ abstract class MultiVersionCatalog @Inject constructor(
         )
     }
 
-    private fun fileText(file: Any) = when (file) {
-        is File -> file.takeIf { it.exists() }?.readText()
-        is Path -> file.takeIf { it.exists() }?.toFile()?.readText()
-        is String -> settings.rootDir.resolve(file).takeIf { f -> f.exists() }?.readText()
+    private fun fileText(file: Any): String? = when (file) {
+        is File -> fileText(file.toPath())
+        is Path -> file.takeIf { it.exists() }?.readText()
+        is String -> fileText(settings.rootDir.resolve(file))
         else -> error("Cannot load version catalog from $file (type: ${file::class.java})")
     }
 
@@ -60,6 +61,7 @@ abstract class MultiVersionCatalog @Inject constructor(
         } else {
             val rootNodes = docs.map { doc ->
                 TOMLConfigurationLoader.builder().buildAndLoadString(
+                    // the parser does not like version.ref format for some reason
                     doc.replace(VERSION_REF, VERSION_REF_HACK)
                 )
             }
