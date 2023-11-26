@@ -72,7 +72,7 @@ gradlePlugin {
         id = "io.papermc.multi-version-catalog"
         displayName = "multi-version-catalog"
         description = "Combines multiple toml files into a single version catalog"
-        implementationClass = "io.papermc.multiversioncatalog.MultiVersionCatalogsPlugin"
+        implementationClass = "io.papermc.multiversioncatalog.MultiVersionCatalogPlugin"
         tags.set(listOf("version-catalogs"))
     }
 }

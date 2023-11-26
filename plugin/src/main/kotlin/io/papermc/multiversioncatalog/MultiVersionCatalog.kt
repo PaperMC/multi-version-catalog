@@ -1,57 +1,54 @@
 package io.papermc.multiversioncatalog
 
-import java.io.File
-import java.nio.file.Path
-import javax.inject.Inject
-import kotlin.io.path.*
+import io.papermc.multiversioncatalog.util.builtInFileCollectionFactory
 import me.lucko.configurate.toml.TOMLConfigurationLoader
 import org.gradle.api.file.FileCollection
 import org.gradle.api.initialization.Settings
 import org.gradle.api.initialization.dsl.VersionCatalogBuilder
 import org.spongepowered.configurate.ConfigurationNode
+import java.io.File
+import java.nio.file.Path
+import java.util.function.Function
+import javax.inject.Inject
+import kotlin.io.path.exists
 
-abstract class MultiVersionCatalogs @Inject constructor(
+abstract class MultiVersionCatalog @Inject constructor(
     private val settings: Settings,
 ) {
-    fun loadVersionCatalogs(
+    @JvmOverloads
+    fun fromFiles(
         catalogName: String,
-        catalogs: Collection<Any>,
-        fileCollectionFactory: (File) -> FileCollection
+        files: Collection<Any>,
+        fileCollectionFactory: Function<File, FileCollection> = settings.builtInFileCollectionFactory()
     ): VersionCatalogBuilder {
-        return loadVersionCatalogsFromStrings(
+        return fromStrings(
             catalogName,
-            catalogs.mapNotNull {
-                when (it) {
-                    is File -> it.takeIf { it.exists() }?.readText()
-                    is Path -> it.takeIf { it.exists() }?.toFile()?.readText()
-                    is String -> settings.rootDir.resolve(it).takeIf { f -> f.exists() }?.readText()
-                    else -> error("Cannot load version catalog from $it (type: ${it::class.java})")
-                }
-            },
+            files.mapNotNull(::fileText),
             fileCollectionFactory
         )
     }
 
-    fun loadVersionCatalogs(
-        catalogName: String,
-        vararg files: File,
-        fileCollectionFactory: (File) -> FileCollection
-    ): VersionCatalogBuilder {
-        return loadVersionCatalogs(catalogName, files.toList(), fileCollectionFactory)
+    private fun fileText(file: Any) = when (file) {
+        is File -> file.takeIf { it.exists() }?.readText()
+        is Path -> file.takeIf { it.exists() }?.toFile()?.readText()
+        is String -> settings.rootDir.resolve(file).takeIf { f -> f.exists() }?.readText()
+        else -> error("Cannot load version catalog from $file (type: ${file::class.java})")
     }
 
-    fun loadVersionCatalogs(
+    @JvmOverloads
+    fun fromFiles(
         catalogName: String,
-        vararg files: Path,
-        fileCollectionFactory: (File) -> FileCollection
+        vararg files: Any,
+        fileCollectionFactory: Function<File, FileCollection> = settings.builtInFileCollectionFactory()
     ): VersionCatalogBuilder {
-        return loadVersionCatalogs(catalogName, files.toList(), fileCollectionFactory)
+        return fromFiles(catalogName, files.toList(), fileCollectionFactory)
     }
 
-    private fun loadVersionCatalogsFromStrings(
+    @JvmOverloads
+    fun fromStrings(
         catalogName: String,
         docs: List<String>,
-        fileCollectionFactory: (File) -> FileCollection
+        fileCollectionFactory: Function<File, FileCollection> = settings.builtInFileCollectionFactory()
     ): VersionCatalogBuilder {
         val merged = settings.rootDir.resolve(mergedLocation(catalogName))
         merged.parentFile.mkdirs()
@@ -92,10 +89,10 @@ abstract class MultiVersionCatalogs @Inject constructor(
     private fun loadCatalogFile(
         name: String,
         file: File?,
-        fileCollectionFactory: (File) -> FileCollection
+        fileCollectionFactory: Function<File, FileCollection>
     ): VersionCatalogBuilder {
         return settings.dependencyResolutionManagement.versionCatalogs.create(name) {
-            file?.let { from(fileCollectionFactory(it)) }
+            file?.let { from(fileCollectionFactory.apply(it)) }
         }
     }
 

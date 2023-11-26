@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 class MultiVersionCatalogPluginFunctionalTest {
 
     private val File.buildFile get() = resolve("build.gradle")
-    private val File.settingsFile get() = resolve("settings.gradle.kts")
+    private val File.settingsFile get() = resolve("settings.gradle")
 
     @Test fun `dependencies task runs`(@TempDir projectDir: File) {
         projectDir.resolve("api.versions.toml").writeText("""
@@ -20,19 +20,18 @@ class MultiVersionCatalogPluginFunctionalTest {
 
             [libraries]
             joml = "org.joml:joml:1.10.5"
-
         """.trimIndent())
         projectDir.resolve("server.versions.toml").writeText("""
             [libraries]
             adventure-text-serializer-ansi = { module = "net.kyori:adventure-text-serializer-ansi", version.ref = "adventure" }
-
         """.trimIndent())
         projectDir.settingsFile.writeText("""
             plugins {
                 id("io.papermc.multi-version-catalog")
             }
             
-            loadVersionCatalogs("libs", "server.versions.toml", "api.versions.toml")
+            def mvc = extensions.getByType(io.papermc.multiversioncatalog.MultiVersionCatalog)
+            mvc.fromFiles("libs", "server.versions.toml", "api.versions.toml")
         """.trimIndent())
         projectDir.buildFile.writeText("""
             plugins {
