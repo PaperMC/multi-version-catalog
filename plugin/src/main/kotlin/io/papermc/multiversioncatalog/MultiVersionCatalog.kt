@@ -1,63 +1,55 @@
 package io.papermc.multiversioncatalog
 
-import io.papermc.multiversioncatalog.util.builtInFileCollectionFactory
 import me.lucko.configurate.toml.TOMLConfigurationLoader
-import org.gradle.api.file.FileCollection
+import org.gradle.api.file.BuildLayout
 import org.gradle.api.initialization.Settings
 import org.gradle.api.initialization.dsl.VersionCatalogBuilder
 import org.spongepowered.configurate.ConfigurationNode
 import java.io.File
 import java.nio.file.Path
-import java.util.function.Function
 import javax.inject.Inject
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 
 abstract class MultiVersionCatalog @Inject constructor(
     private val settings: Settings,
+    private val buildLayout: BuildLayout,
 ) {
-    @JvmOverloads
     fun fromFiles(
         catalogName: String,
-        files: Collection<Any>,
-        fileCollectionFactory: Function<File, FileCollection> = settings.builtInFileCollectionFactory()
+        files: Collection<Any>
     ): VersionCatalogBuilder {
         return fromStrings(
             catalogName,
-            files.mapNotNull(::fileText),
-            fileCollectionFactory
+            files.mapNotNull(::fileText)
         )
     }
 
     private fun fileText(file: Any): String? = when (file) {
         is File -> fileText(file.toPath())
         is Path -> file.takeIf { it.exists() }?.readText()
-        is String -> fileText(settings.rootDir.resolve(file))
+        is String -> fileText(buildLayout.rootDirectory.file(file).asFile.toPath())
         else -> error("Cannot load version catalog from $file (type: ${file::class.java})")
     }
 
-    @JvmOverloads
     fun fromFiles(
         catalogName: String,
-        vararg files: Any,
-        fileCollectionFactory: Function<File, FileCollection> = settings.builtInFileCollectionFactory()
+        vararg files: Any
     ): VersionCatalogBuilder {
-        return fromFiles(catalogName, files.toList(), fileCollectionFactory)
+        return fromFiles(catalogName, files.toList())
     }
 
-    @JvmOverloads
     fun fromStrings(
         catalogName: String,
-        docs: List<String>,
-        fileCollectionFactory: Function<File, FileCollection> = settings.builtInFileCollectionFactory()
+        docs: List<String>
     ): VersionCatalogBuilder {
-        val merged = settings.rootDir.resolve(mergedLocation(catalogName))
+        val merged = buildLayout.rootDirectory.file(mergedLocation(catalogName)).asFile
         merged.parentFile.mkdirs()
         if (docs.isEmpty()) {
-            return loadCatalogFile(catalogName, null, fileCollectionFactory)
+            return loadCatalogFile(catalogName, null)
         } else if (docs.size == 1) {
             merged.writeText(docs.single())
-            return loadCatalogFile(catalogName, merged, fileCollectionFactory)
+            return loadCatalogFile(catalogName, merged)
         } else {
             val rootNodes = docs.map { doc ->
                 TOMLConfigurationLoader.builder().buildAndLoadString(
@@ -81,17 +73,16 @@ abstract class MultiVersionCatalog @Inject constructor(
                 merged.writeText(catalogText)
             }
 
-            return loadCatalogFile(catalogName, merged, fileCollectionFactory)
+            return loadCatalogFile(catalogName, merged)
         }
     }
 
     private fun loadCatalogFile(
         name: String,
-        file: File?,
-        fileCollectionFactory: Function<File, FileCollection>
+        file: File?
     ): VersionCatalogBuilder {
         return settings.dependencyResolutionManagement.versionCatalogs.create(name) {
-            file?.let { from(fileCollectionFactory.apply(it)) }
+            file?.let { from(buildLayout.rootDirectory.files(it)) }
         }
     }
 
